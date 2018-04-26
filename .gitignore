@@ -35,4 +35,5 @@ jspm_packages
 # Optional REPL history
 .node_repl_history
 
-
+#Firebase APIキー等
+sweetpotatoserver-firebase-adminsdk-38tyz-424bf9e1a8.json

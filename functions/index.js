@@ -10,15 +10,12 @@ firebase.initializeApp(functions.config().firebase);
 
 //GWの詳細情報取得
 exports.info = functions.https.onRequest((req, res) => {
+  if(req.method != 'GET'){
+    res.status(404).json({ message: 'Not Found' });
+    return;
+  }
   const uid = req.query.uid;
   admin.database().ref('/gw/'+uid+'/info').once("value", function(data) {
-      /*
-      {
-        "user" : {
-          "uid" : "hJHbhMzfoTO8WPTLhGDspASppx63"
-        }
-      }
-      */
       console.log("data",data);
       res.status(200).json(data.val());
   });
@@ -26,10 +23,15 @@ exports.info = functions.https.onRequest((req, res) => {
 
 //ユーザー情報でログイン
 exports.signin = functions.https.onRequest((req, res) => {
+  if(req.method != 'POST'){
+    res.status(404).json({ message: 'Not Found' });
+    return;
+  }
+
   const email = req.body.email;
   const password = req.body.password;
-  console.log("query",req.query);
-  console.log("body",req.body);
+  //console.log("query",req.query);
+  //console.log("body",req.body);
 
   admin.auth().getUserByEmail(email)
     .then(function(userRecord) {
@@ -66,15 +68,20 @@ exports.signin = functions.https.onRequest((req, res) => {
     });
 });
 
-
+//GWからの beacon情報 POST
 exports.gw = functions.https.onRequest((req, res) => {
+  if(req.method != 'POST'){
+    res.status(404).json({ message: 'Not Found' });
+    return;
+  }
+
   const uid = req.query.uid;
   const be = req.query.be;
 
-  console.log("gw");
-  console.log(" uid", uid);
-  console.log(" be", be);
-  console.log(" body", req.body);
+  //console.log("gw");
+  //console.log(" uid", uid);
+  //console.log(" be", be);
+  //console.log(" body", req.body);
 
   //TODO 本来は customToken でログインしてユーザーとしてDBに記録する
   for(let i in req.body){
@@ -88,3 +95,28 @@ exports.gw = functions.https.onRequest((req, res) => {
     });
   }
 });
+
+//gw 登録
+exports.register = functions.https.onRequest((req, res) => {
+  if(req.method != 'POST'){
+    res.status(404).json({ message: 'Not Found' });
+    return;
+  }
+
+  //カスタムトークン と gw ユニークキー
+  const customToken = req.query.customToken;
+  const uid = req.query.uid;
+
+  admin.auth().verifyIdToken(customToken)
+    .then(function(decodedToken) {
+      var uid = decodedToken.uid;
+      //GW 所持者の uidを登録する
+      //TODO 既に登録されている場合はエラーとする
+      const info = {"user":{"uid":decodedToken.uid}};
+      admin.database().ref('/gw/'+uid+'/info').set().then(snapshot => {
+        res.status(200).json({"status":"OK"});
+      });
+    }).catch(function(error) {
+      res.status(404).json({ message: 'Not Found' });
+    });
+}
